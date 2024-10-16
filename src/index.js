@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Configuration, OpenAIApi } = require('openai');
+const axios = require('axios');
 
 const app = express();
 const port = 3000;
@@ -8,21 +9,41 @@ const port = 3000;
 // Middleware to parse JSON requests
 app.use(express.json());
 
-// Set up OpenAI configuration
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
 // Endpoint to handle requests from the WordPress plugin
 app.post('/api/send-message', async (req, res) => {
   try {
-    const { message, assistantId, threadId } = req.body;
+    const { message, assistantId, threadId, apiKeyName } = req.body;
 
     // Ensure required fields are provided
-    if (!message || !assistantId) {
-      return res.status(400).json({ error: 'Missing required fields: message or assistantId' });
+    if (!message || !assistantId || !apiKeyName) {
+      return res.status(400).json({ error: 'Missing required fields: message, assistantId, or apiKeyName' });
     }
+
+    // Retrieve the API key from WordPress plugin
+    let apiKey;
+    try {
+      const response = await axios.post('https://your-wordpress-site.com/wp-admin/admin-ajax.php', new URLSearchParams({
+        action: 'gpt_chat_get_api_key',
+        api_key_name: apiKeyName
+      }).toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      if (response.data && response.data.success) {
+        apiKey = response.data.api_key;
+      } else {
+        throw new Error('API key not found.');
+      }
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to retrieve API key from WordPress plugin.' });
+    }
+
+    // Set up OpenAI configuration with the retrieved API key
+    const configuration = new Configuration({
+      apiKey,
+    });
+    const openai = new OpenAIApi(configuration);
 
     // Set headers for streaming response
     res.setHeader('Content-Type', 'application/json');
