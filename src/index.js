@@ -70,7 +70,7 @@ app.post('/api/send-message', async (req, res) => {
     // Poll run status
     let attempts = 0;
     const maxAttempts = 60;
-    while (attempts < maxAttempts) {
+    while (attempts < maxAttempts) { 
       const runStatus = await openai.retrieveRun(currentThreadId, run.data.id);
       res.write(JSON.stringify({ status: runStatus.data.status }) + '\n');
 
