@@ -6,11 +6,19 @@ const axios = require('axios');
 const app = express();
 const port = 3000;
 
-// Middleware to parse JSON requests
-app.use(express.json());
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    next();
+  });
+  
+  app.use(express.json());
 
 // Endpoint to handle requests from the WordPress plugin
 app.post('/api/send-message', async (req, res) => {
+
   try {
     const { message, assistantId, threadId, apiKeyName } = req.body;
 
@@ -38,6 +46,8 @@ app.post('/api/send-message', async (req, res) => {
     } catch (error) {
       return res.status(500).json({ error: 'Failed to retrieve API key from WordPress plugin.' });
     }
+
+    console.log('API Key:', apiKey);
 
     // Set up OpenAI configuration with the retrieved API key
     const configuration = new Configuration({
